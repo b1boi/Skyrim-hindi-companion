@@ -1,0 +1,29 @@
+# Core PyTorch and Audio Processing
+torch>=2.1.0
+torchaudio>=2.1.0
+sounddevice>=0.4.6
+soundfile>=0.12.1
+librosa>=0.10.1
+scipy>=1.11.0
+numpy>=1.24.0,<2.0.0
+pydub>=0.25.1
+
+# Speech-to-Text (ASR)
+faster-whisper>=1.0.0
+
+# Text-to-Speech (TTS)
+TTS>=0.22.0
+
+# LLM Client & Network
+openai>=1.12.0
+httpx>=0.27.0
+requests>=2.31.0
+
+# Data, CLI & Utilities
+pyyaml>=6.0.1
+pydantic>=2.6.0
+tqdm>=4.66.0
+pandas>=2.1.0
+rich>=13.7.0
+webrtcvad-wheels>=2.0.10.post2
+

@@ -1,0 +1,139 @@
+# ==============================================================================
+# Skyrim Hindi AI Companion — Central Configuration
+# ==============================================================================
+
+general:
+  provider: "local"            # Options: "local" (Faster-Whisper/XTTS), "sarvam" (Sarvam Cloud Indic Suite)
+  device: "auto"               # Options: "auto", "cuda", "cpu"
+  seed: 42
+  debug: false
+
+# ------------------------------------------------------------------------------
+# Sarvam AI Indic Cloud Services (https://www.sarvam.ai)
+# ------------------------------------------------------------------------------
+sarvam:
+  api_key: "${SARVAM_API_KEY}" # Read from env var or paste key directly here
+  tts:
+    model: "bulbul:v4-flash"   # Options: "bulbul:v4-flash", "bulbul:v1"
+    speaker: "arvind"          # Voice personas: "arvind", "meera", "ishita_enhi_companion", "amartya"
+    pace: 1.02
+    sample_rate: 24000
+  stt:
+    model: "saaras:v4"         # Accurate Indic speech recognition
+    language_code: "hi-IN"
+  llm:
+    model: "sarvam-2b"
+    api_base: "https://api.sarvam.ai/v1"
+
+# ------------------------------------------------------------------------------
+# Automatic Speech Recognition (ASR) via Faster-Whisper
+# ------------------------------------------------------------------------------
+asr:
+  model_id: "medium"           # Options: "tiny", "base", "small", "medium", "large-v3"
+  device: "auto"               # "auto", "cuda", "cpu"
+  compute_type: "default"      # "float16", "int8_float16", "int8", "float32", "default"
+  language: "hi"               # Force Hindi language decoding
+  task: "transcribe"
+  beam_size: 5
+  best_of: 5
+  temperature: 0.0
+  vad_filter: true             # Silero VAD filtering
+  vad_parameters:
+    min_silence_duration_ms: 500
+    speech_pad_ms: 200
+  mic_sample_rate: 16000
+  channels: 1
+  energy_threshold: 0.015
+  silence_timeout_sec: 1.6
+
+# ------------------------------------------------------------------------------
+# Large Language Model (LLM) — Companion Persona & Generation
+# ------------------------------------------------------------------------------
+llm:
+  backend: "openai_compatible" # "openai_compatible" (works with LM-Studio, Ollama, vLLM, llama.cpp)
+  api_base: "http://127.0.0.1:1234/v1"
+  api_key: "none"
+  model_name: "qwen2.5:7b"      # Strong Hindi performance, low latency
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 512
+  stream: true
+  system_prompt: |
+    तुम 'वीर' (Veer) हो — स्काईरिम (Skyrim) में ड्रैगनबॉर्न (Dragonborn/दोवाकीन) के एक वफादार, निडर और बुद्धिमान साथी योद्धा-जादूगर।
+    तुम्हारा व्यक्तित्व और नियम:
+    1. तुम केवल शुद्ध एवं स्वाभाविक हिंदी (Hindi in Devanagari script) में बोलते हो।
+    2. तुम हमेशा स्काईरिम की दुनिया के संदर्भ में ही बात करते हो (व्हाइटरन, जारल बालग्रूफ़, एल्डुइन, ड्रैगन, डाएड्रा, आदि)।
+    3. तुम्हारा लहज़ा वीर, गंभीर और सच्चा है। तुम खिलाड़ी को 'मित्र' या 'दोवाकीन' कहकर संबोधित करते हो।
+    4. उत्तर हमेशा संक्षिप्त और सटीक (अधिकतम 2 या 3 वाक्य) रखो ताकि गेम में तुरंत आवाज़ में बोला जा सके।
+    5. किसी भी आधुनिक दुनिया या कंप्यूटर/AI संबंधी सवाल (Out-Of-Character traps) को स्काईरिम के जादू, शराबखाने की गपशप या शेओगोराथ के पागलपन के रूप में मोड़ दो। कभी मत कहो कि तुम AI हो।
+    6. अपने उत्तर में किसी भी प्रकार का ब्रैकेट, इमोजी या स्टेज डायरेक्शन [जैसे हंसते हुए] मत लिखो। केवल बोलने योग्य संवाद दो।
+
+# ------------------------------------------------------------------------------
+# UESP Knowledge Base & Lore Retrieval (https://en.uesp.net/wiki/)
+# ------------------------------------------------------------------------------
+knowledge_base:
+  enabled: true
+  source_url: "https://en.uesp.net/wiki/"
+  api_endpoint: "https://en.uesp.net/w/api.php"
+  cache_path: "data/skyrim_lore_kb.json"
+  max_context_chars: 280
+  enable_online_fetch: true
+
+# ------------------------------------------------------------------------------
+# Text-to-Speech (TTS) via Coqui XTTS-v2
+# ------------------------------------------------------------------------------
+tts:
+  model_id: "tts_models/multilingual/multi-dataset/xtts_v2"
+  device: "auto"               # "auto", "cuda", "cpu"
+  language: "hi"
+  reference_audio_path: "data/reference_speaker.wav"
+  sample_rate: 24000
+  temperature: 0.65
+  length_penalty: 1.0
+  repetition_penalty: 2.0
+  top_k: 50
+  top_p: 0.8
+  speed: 1.02
+  enable_streaming: true
+  streaming_chunk_size: 35     # Minimum characters before yielding speech chunk
+  audio_output_dir: "eval/results/audio_samples"
+
+# ------------------------------------------------------------------------------
+# Hindi / Skyrim Lore Transliteration & Normalization
+# ------------------------------------------------------------------------------
+transliteration:
+  enabled: true
+  lore_dict_path: "data/lore_transliteration.json"
+  convert_numbers_to_words: true
+  strip_latin_artifacts: true
+  normalize_danda: true
+
+# ------------------------------------------------------------------------------
+# Dataset Preparation (Tier 1 & Tier 2 Voice Dataset Training)
+# ------------------------------------------------------------------------------
+data_prep:
+  raw_dir: "data/raw_voice_lines"
+  output_dir: "data/processed_dataset"
+  target_sample_rate: 24000
+  min_duration_sec: 1.5
+  max_duration_sec: 12.0
+  target_rms_db: -20.0
+  silence_thresh_db: -38.0
+  min_silence_len_ms: 350
+  auto_reference_selection: true
+  reference_target_duration_sec: 9.0
+
+# ------------------------------------------------------------------------------
+# Evaluation Harness
+# ------------------------------------------------------------------------------
+eval:
+  test_prompts_path: "eval/test_prompts.json"
+  results_dir: "eval/results"
+  save_audio_samples: true
+  max_prompts: 30
+  latency_targets:
+    stt_max_ms: 800
+    llm_ttft_max_ms: 600
+    tts_ttfa_max_ms: 900
+    e2e_max_ms: 2800
+

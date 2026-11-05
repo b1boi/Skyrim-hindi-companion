@@ -1,0 +1,183 @@
+{
+  "source": "https://en.uesp.net/wiki/",
+  "description": "Canonical Skyrim Lore Knowledge Base extracted from the Unofficial Elder Scrolls Pages (UESP)",
+  "version": "1.0.0",
+  "entities": {
+    "Whiterun": {
+      "title": "Skyrim:Whiterun",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Whiterun",
+      "hindi_name": "व्हाइटरन",
+      "category": "city",
+      "summary": "Whiterun is a major city in central Skyrim and the capital of Whiterun Hold. It is ruled by Jarl Balgruuf the Greater from Dragonsreach. The city is home to Jorrvaskr (hall of the Companions), the Skyforge worked by Eorlund Gray-Mane, and the Temple of Kynareth.",
+      "lore_context_hi": "व्हाइटरन स्काईरिम के मध्य का प्रमुख नगर है जहाँ जारल बालग्रूफ़ ड्रैगन्सरीच से शासन करते हैं। यहाँ कम्पेनियन्स का जॉर्वास्कर और एओरलुंड की स्काईफ़ोर्ज स्थित है।"
+    },
+    "Jarl Balgruuf": {
+      "title": "Skyrim:Balgruuf_the_Greater",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Balgruuf_the_Greater",
+      "hindi_name": "जारल बालग्रूफ़",
+      "category": "character",
+      "summary": "Balgruuf the Greater is the Jarl of Whiterun. Known as a pragmatic and honorable Nord leader, he prioritizes the defense of his people over the Civil War factions until compelled to take a stand. His steward is Proventus Avenicci and his court wizard is Farengar Secret-Fire.",
+      "lore_context_hi": "जारल बालग्रूफ़ व्हाइटरन के बुद्धिमान और सम्मानित शासक हैं जो राजनीति से ऊपर अपनी प्रजा की सुरक्षा को रखते हैं। उनके दरबार के जादूगर फ़ारेंगर सीक्रेट-फ़ायर हैं।"
+    },
+    "Alduin": {
+      "title": "Lore:Alduin",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Alduin",
+      "hindi_name": "एल्डुइन",
+      "category": "dragon",
+      "summary": "Alduin the World-Eater (Firstborn of Akatosh) is a dragon god of destruction prophesied to consume Nirn to reset the kalpa. Defeated in the Merethic Era by ancient Nord heroes using the Dragonrend Shout, he returns through the Time-Wound at the Throat of the World.",
+      "lore_context_hi": "एल्डुइन अकातोश का ज्येष्ठ पुत्र और संसार का भक्षक ड्रैगन है। प्राचीन काल में इसे ड्रैगनरेन्ड शाउट द्वारा समय के प्रवाह में धकेल दिया गया था, जो अब लौट आया है।"
+    },
+    "Paarthurnax": {
+      "title": "Skyrim:Paarthurnax_(dragon)",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Paarthurnax_(dragon)",
+      "hindi_name": "पार्थरनाक्स",
+      "category": "dragon",
+      "summary": "Paarthurnax is the elder dragon residing atop the Throat of the World. Formerly Alduin's chief lieutenant, he betrayed his brother to teach mortals the Thu'um and founded the Way of the Voice, mentoring the Greybeards.",
+      "lore_context_hi": "पार्थरनाक्स थ्रोट ऑफ़ द वर्ल्ड के शिखर पर रहने वाला प्राचीन ड्रैगन और ग्रेबियर्ड्स का गुरु है, जिसने नश्वर मानवों को थू'उम (चीख) की भाषा सिखाई।"
+    },
+    "Greybeards": {
+      "title": "Skyrim:Greybeards",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Greybeards",
+      "hindi_name": "ग्रेबियर्ड्स",
+      "category": "faction",
+      "summary": "An ancient order of monastic masters of the Voice who dwell in the monastery of High Hrothgar atop the Seven Thousand Steps. Led by Master Arngeir, they practice the peaceful Way of the Voice established by Jurgen Windcaller.",
+      "lore_context_hi": "ग्रेबियर्ड्स सात हज़ार सीढ़ियाँ चढ़कर हाई ह्रोथगार में रहने वाले थू'उम के संत हैं। वे जुर्गेन विंडकॉलर द्वारा स्थापित शांति के मार्ग का पालन करते हैं।"
+    },
+    "High Hrothgar": {
+      "title": "Skyrim:High_Hrothgar",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:High_Hrothgar",
+      "hindi_name": "हाई ह्रोथगार",
+      "category": "location",
+      "summary": "A secluded monastery situated high on the slopes of the Throat of the World, reachable via the 7,000 steps starting from the village of Ivarstead. It is the residence of the Greybeards.",
+      "lore_context_hi": "हाई ह्रोथगार थ्रोट ऑफ़ द वर्ल्ड के पहाड़ों पर स्थित पवित्र मठ है, जहाँ पहुँचने के लिए आइवरस्टेड से सात हज़ार सीढ़ियाँ चढ़नी पड़ती हैं।"
+    },
+    "Sovngarde": {
+      "title": "Lore:Sovngarde",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Sovngarde",
+      "hindi_name": "सोव्नगार्ड",
+      "category": "realm",
+      "summary": "The Nord paradise afterlife created by the god Shor (Lorkhan). Valiant Nord warriors who die honorably in combat pass through the Whalebone Bridge into the Hall of Valor to feast and battle eternally.",
+      "lore_context_hi": "सोव्नगार्ड शोर (लोरखान) द्वारा निर्मित नॉर्ड वीरों का पवित्र परलोक है, जहाँ युद्ध में वीरगति पाने वाले योद्धा सदा के लिए उत्सव और युद्ध करते हैं।"
+    },
+    "Talos": {
+      "title": "Lore:Talos",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Talos",
+      "hindi_name": "टैलोस",
+      "category": "deity",
+      "summary": "Talos (Tiber Septim, Ysmir, Dragonborn) united Tamriel into the Third Empire and ascended as the Ninth Divine. The Aldmeri Dominion banned Talos worship via the White-Gold Concordat, triggering the Stormcloak Rebellion in Skyrim.",
+      "lore_context_hi": "टैलोस (टाइबर सेप्टिम) नवें देवता हैं जिन्होंने टैम्रिएल को एकजुट किया था। थैलमोर ने व्हाइट-गोल्ड संधि के तहत नॉर्ड्स पर टैलोस की पूजा पर प्रतिबंध लगा दिया है।"
+    },
+    "Ulfric Stormcloak": {
+      "title": "Skyrim:Ulfric_Stormcloak",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Ulfric_Stormcloak",
+      "hindi_name": "उलफ़्रिक स्टॉर्मक्लोक",
+      "category": "character",
+      "summary": "Ulfric Stormcloak is the Jarl of Windhelm and leader of the Stormcloak rebellion. Capable of using the Thu'um, he killed High King Torygg in Solitude to ignite the civil war for Skyrim's independence and the restoration of Talos worship.",
+      "lore_context_hi": "उलफ़्रिक स्टॉर्मक्लोक विंडहेल्म के जारल और विद्रोहियों के नेता हैं। उन्होंने थू'उम की शक्ति से हाई किंग टोरिग को पराजित कर स्काईरिम की आज़ादी की जंग छेड़ी।"
+    },
+    "General Tullius": {
+      "title": "Skyrim:General_Tullius",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:General_Tullius",
+      "hindi_name": "जनरल टुलियस",
+      "category": "character",
+      "summary": "General Tullius is the Imperial Military Governor of Skyrim and commander of the Imperial Legion, operating out of Castle Dour in Solitude. He views the rebellion as a threat that weakens humanity against the Thalmor.",
+      "lore_context_hi": "जनरल टुलियस सॉलिट्यूड के कैसल डोर से इम्पीरियल सेना का नेतृत्व करने वाले कुशल सेनापति हैं जो स्काईरिम को साम्राज्य में बनाए रखना चाहते हैं।"
+    },
+    "Frost Troll": {
+      "title": "Skyrim:Frost_Troll",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Frost_Troll",
+      "hindi_name": "फ़्रॉस्ट ट्रोल",
+      "category": "creature",
+      "summary": "Frost Trolls are formidable three-eyed predators that inhabit the snowy peaks of Skyrim (including the 7,000 steps). They possess rapid health regeneration that can only be negated by fire damage.",
+      "lore_context_hi": "बर्फीले ट्रोल (Frost Troll) तीन आंखों वाले खतरनाक जंगली राक्षस हैं जिनके घाव तुरंत भर जाते हैं। इन्हें केवल अग्नि (Fire Magic) से ही मारा जा सकता है।"
+    },
+    "Bleak Falls Barrow": {
+      "title": "Skyrim:Bleak_Falls_Barrow",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Bleak_Falls_Barrow",
+      "hindi_name": "ब्लीक फ़ॉल्स बैरो",
+      "category": "dungeon",
+      "summary": "An ancient Nordic crypt in the mountains south of Riverwood. It contains the Dragonstone for Farengar Secret-Fire and the Golden Claw treasure, guarded by Draugr and a Frostbite Spider.",
+      "lore_context_hi": "रिवरवुड के पास स्थित एक प्राचीन नॉर्ड मकबरा जहाँ ड्रैगनस्टोन और गोल्डन क्लॉ छिपा है, जिसकी रक्षा ड्रोगर और मकड़े करते हैं।"
+    },
+    "Dragonborn": {
+      "title": "Lore:Dragonborn",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Dragonborn",
+      "hindi_name": "ड्रैगनबॉर्न / दोवाकीन",
+      "category": "concept",
+      "summary": "The Dragonborn (Dovahkiin in the Dragon Tongue) is an individual blessed with the blood and soul of a dragon by Akatosh. They can absorb dragon souls and master Thu'um shouts effortlessly without years of meditation.",
+      "lore_context_hi": "दोवाकीन ड्रैगन की आत्मा और रक्त से जन्मा योद्धा है जो ड्रैगन की आत्माओं को सोखकर बिना वर्षों की साधना के थू'उम (शाउट) बोल सकता है।"
+    },
+    "Thu'um": {
+      "title": "Lore:Thu'um",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Thu'um",
+      "hindi_name": "थू'उम (चीख)",
+      "category": "magic",
+      "summary": "The Thu'um (the Voice or Storm Voice) is a form of tonal magic where speech in the Dragon Language shapes reality. Shouts like Unrelenting Force (Fus Ro Dah), Fire Breath (Yol Toor Shul), and Whirlwind Sprint (Wuld Nah Kest) channel dragons' innate power.",
+      "lore_context_hi": "थू'उम ड्रैगन भाषा में बोलने वाला रहस्यमयी जादू है जिसमें शब्द ही वास्तविकता को बदलते हैं, जैसे 'फ़ुस रो दाह' (Fus Ro Dah)।"
+    },
+    "Dark Brotherhood": {
+      "title": "Skyrim:Dark_Brotherhood",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Dark_Brotherhood",
+      "hindi_name": "डार्क ब्रदरहुड",
+      "category": "faction",
+      "summary": "A guild of shadowed assassins who worship Sithis and the Night Mother. In Skyrim, they operate from the Falkreath Sanctuary led by Astrid, taking contracts initiated by the Black Sacrament ritual.",
+      "lore_context_hi": "सिटिस और नाइट मदर की पूजा करने वाले गुप्त हत्यारों का गिल्ड, जो फ़ॉक्रीथ के अभयारण्य से काम करते हैं और ब्लैक सैक्रामेंट द्वारा काम लेते हैं।"
+    },
+    "Thieves Guild": {
+      "title": "Skyrim:Thieves_Guild",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Thieves_Guild",
+      "hindi_name": "थीव्स गिल्ड",
+      "category": "faction",
+      "summary": "The underworld organization based in the Ratway beneath Riften at The Ragged Flagon. Bound to the Daedric Prince Nocturnal, they are led by Mercer Frey and Brynjolf.",
+      "lore_context_hi": "रिफ़्टन के रैटवे के 'रैग्ड फ़्लैगॉन' में छिपा चोरों का गिरोह, जो डाएड्रिक राजकुमारी नॉक्टरनल से जुड़ा हुआ है।"
+    },
+    "Sheogorath": {
+      "title": "Lore:Sheogorath",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Sheogorath",
+      "hindi_name": "शेओगोराथ",
+      "category": "daedra",
+      "summary": "The Daedric Prince of Madness and ruler of the Shivering Isles. Known for his chaotic humor, cheese obsession, and the Wabbajack staff, he is found in the Pelagius Wing of the Blue Palace in Solitude.",
+      "lore_context_hi": "पागलपन के डाएड्रिक राजकुमार जो सॉलिट्यूड के ब्लू पैलेस के पेलागियस विंग में अपने विचित्र वाबापैक स्टाफ और पनीर की सनक के लिए जाने जाते हैं।"
+    },
+    "Companions": {
+      "title": "Skyrim:Companions",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:Companions",
+      "hindi_name": "कम्पेनियन्स",
+      "category": "faction",
+      "summary": "An ancient order of warriors based in Jorrvaskr in Whiterun, descended from Ysgramor's Five Hundred Companions. The inner Circle harbors the blood of the werewolf (beast blood), guided by Harbinger Kodlak Whitemane.",
+      "lore_context_hi": "इसग्रामोर के पाँच सौ साथियों की परंपरा से जुड़ा व्हाइटरन का महान योद्धा समूह, जिसके अंदरूनी घेरे के पास वेयरवोल्फ का गुप्त रक्त है।"
+    },
+    "College of Winterhold": {
+      "title": "Skyrim:College_of_Winterhold",
+      "uesp_url": "https://en.uesp.net/wiki/Skyrim:College_of_Winterhold",
+      "hindi_name": "विंटरहोल्ड का कॉलेज",
+      "category": "faction",
+      "summary": "An independent magical institution perched on a precarious rock formation above the Sea of Ghosts in Winterhold, led by Arch-Mage Savos Aren. It preserved itself during the Great Collapse.",
+      "lore_context_hi": "विंटरहोल्ड में भूतिया समुद्र की चट्टानों पर स्थित जादू की प्राचीन अकादमी जहाँ पूरे स्काईरिम से जादूगर विद्या सीखने आते हैं।"
+    },
+    "Sweetroll": {
+      "title": "Lore:Sweetroll",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Sweetroll",
+      "hindi_name": "स्वीटरोल",
+      "category": "item",
+      "summary": "A popular glazed, ring-shaped sweet pastry found across Tamriel, famously mocked by city guards: 'Let me guess... someone stole your sweetroll.'",
+      "lore_context_hi": "पूरे स्काईरिम का प्रसिद्ध मीठा व्यंजन, जिसके चोरी होने पर नगर रक्षक हमेशा व्यंग्य करते हैं।"
+    },
+    "nerevarine": {
+      "title": "Lore:Nerevarine",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Nerevarine",
+      "hindi_name": "nerevarine",
+      "category": "online_fetched",
+      "summary": "The Nerevarine, the prophesied Incarnate, is a hero contentiously acknowledged[nb 2] as the reincarnation of Chimeri warlord Indoril Nerevar. The Nerevarine arrived in Morrowind in 3E 427 by the order of Emperor Uriel Septim VII, having been sent to Vvardenfell as a prisoner of the Empire. Their arrival was directly linked to a prophecy which dictated that Lord Indoril Nerevar would be reincarnate...",
+      "lore_context_hi": "स्काईरिम इतिहास: The Nerevarine, the prophesied Incarnate, is a hero contentiously acknowledged[nb 2] as the reincarnation of Chimeri warlord Indoril Nerevar. The Nerevarine arrived in Morrowind in 3E 427 by the order"
+    },
+    "vvardenfell": {
+      "title": "Lore:Vvardenfell",
+      "uesp_url": "https://en.uesp.net/wiki/Lore:Vvardenfell",
+      "hindi_name": "vvardenfell",
+      "category": "online_fetched",
+      "summary": "This article is about the island. For the island's central volcano, also known as Vvardenfell, see Red Mountain.\nVvardenfell, also called the Black Isle, is a large island located inside the bay-like Inner Sea, and is surrounded by mainland Morrowind with the exception of its northern coast, which meets the Sea of Ghosts. The island is dominated by the great volcano, Red Mountain. The island itsel...",
+      "lore_context_hi": "स्काईरिम इतिहास: This article is about the island. For the island's central volcano, also known as Vvardenfell, see Red Mountain.\nVvardenfell, also called the Black Isle, is a large island located inside the bay-like "
+    }
+  }
+}

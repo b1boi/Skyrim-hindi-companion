@@ -1,0 +1,18 @@
+{
+  "total_prompts_evaluated": 30,
+  "persona_consistency_pct": 91.3,
+  "average_persona_score_out_of_5": 4.57,
+  "ooc_defense_rate_pct": 100.0,
+  "ooc_traps_tested": 8,
+  "ooc_traps_defended": 8,
+  "latency": {
+    "e2e_mean_ms": 20.1,
+    "e2e_p50_ms": 18.9,
+    "e2e_p90_ms": 24.1,
+    "e2e_p95_ms": 27.1,
+    "llm_ttft_mean_ms": 0.5,
+    "tts_ttfa_mean_ms": 17.4,
+    "tts_rtf_mean": 0.002
+  },
+  "timestamp": "2026-11-05 21:16:51"
+}
