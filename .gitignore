@@ -6,13 +6,29 @@ __pycache__/
 .pytest_cache/
 
 # Audio outputs & virtual envs
+*.wav
+!data/reference_speaker.wav
 .venv/
 venv/
 ENV/
 env/
 
+# Environment, secrets & local configs
+.env
+.env.*
+*.env
+*.key
+*.pem
+config.local.yaml
+config.local.yml
+
+# Large dumps & SQLite databases (exceeds GitHub size limits)
+*.bz2
+*.db
+*.sqlite
+*.sqlite3
+
 # IDE files
 .vscode/
 .idea/
 *.swp
-

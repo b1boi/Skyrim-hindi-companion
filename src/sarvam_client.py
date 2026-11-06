@@ -57,32 +57,32 @@ class SarvamAIClient:
 
         if not self.api_key:
             logger.warning(
-                "Sarvam API key not found. Set SARVAM_API_KEY env var or provide it in config.yaml."
+                "Sarvam API key not found. Please set the SARVAM_API_KEY environment variable."
             )
 
     def _load_key_from_config(self) -> Optional[str]:
-        """Loads API key from config.yaml if present."""
-        cfg_path = repo_root / "config.yaml"
-        if not cfg_path.exists():
-            return None
-        try:
-            import yaml
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = yaml.safe_load(f) or {}
-            key = cfg.get("sarvam", {}).get("api_key")
-            if key and not key.startswith("${"):
-                return key.strip()
-        except Exception:
-            pass
+        """Loads API key from config.local.yaml or config.yaml if present."""
+        for cfg_name in ("config.local.yaml", "config.yaml"):
+            cfg_path = repo_root / cfg_name
+            if not cfg_path.exists():
+                continue
+            try:
+                import yaml
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+                key = cfg.get("sarvam", {}).get("api_key")
+                if key and not key.startswith("${"):
+                    return key.strip()
+            except Exception:
+                pass
         return None
 
     def _get_headers(self) -> Dict[str, str]:
         """Returns standard Sarvam authorization headers."""
         if not self.api_key:
             raise ValueError(
-                "Sarvam API Key is missing. Set it with:\n"
-                "  export SARVAM_API_KEY='your_api_key'\n"
-                "or place it in config.yaml under sarvam.api_key."
+                "Sarvam API Key is missing. Set it via environment variable:\n"
+                "  export SARVAM_API_KEY='your_api_key'"
             )
         return {
             "api-subscription-key": self.api_key.strip(),

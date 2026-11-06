@@ -1,5 +1,5 @@
 """
-End-to-End Voice Interactive Hindi Companion Pipeline for Skyrim.
+End-to-End Voice Interactive Hindi Companion Pipeline for Skyrim — 'सरकार भैया'.
 
 Orchestrates:
   Microphone / File / Text Input
@@ -8,11 +8,13 @@ Orchestrates:
     ↓
   Skyrim Devanagari Normalizer
     ↓
-  Local LLM (Persona Prompt + Streaming TTFT)
+  Local LLM (Sarkar Bhaiya Persona + Gemma 4 E2B Instruct + Streaming TTFT)
     ↓
-  Coqui XTTS-v2 (Zero-shot Hindi Synthesis + Streaming Chunker)
+  Coqui XTTS-v2 / Sarvam Bulbul (Sentence-level Streaming Chunker)
     ↓
-  Audio Playback & Latency Profiler
+  Thread-Safe Sequential Audio Playback Queue (Synthesize N while N-1 plays)
+    ↓
+  Mantella Event Dispatch & Latency Profiler
 
 Ready to connect directly with the Mantella Skyrim mod pipeline in Tier 3.
 """
@@ -35,8 +37,10 @@ if str(repo_root) not in sys.path:
 
 from src.asr import FasterWhisperASR
 from src.llm import SkyrimCompanionLLM
+from src.persona import GAMEPLAY_EVENTS
 from src.transliterate import SkyrimHindiNormalizer
 from src.tts import XTTSHindiSynthesizer
+from src.tts_streamer import StreamingTTSPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +49,7 @@ try:
     from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
+
     RICH_AVAILABLE = True
     console = Console()
 except (ImportError, Exception):
@@ -60,6 +65,7 @@ class SkyrimHindiPipeline:
         config_path: Optional[Union[str, Path]] = None,
         provider: Optional[str] = None,
         sarvam_speaker: Optional[str] = None,
+        mock_playback: bool = False,
     ):
         self.config_path = (
             Path(config_path) if config_path else repo_root / "config.yaml"
@@ -82,7 +88,7 @@ class SkyrimHindiPipeline:
         self.sarvam_speaker = sarvam_speaker or sarvam_cfg.get("tts", {}).get("speaker", "arvind")
 
         logger.info(
-            f"Initializing Skyrim Hindi AI Companion Pipeline (Provider: {self.provider.upper()})..."
+            f"Initializing Skyrim Hindi AI Companion Pipeline — सरकार भैया (Provider: {self.provider.upper()})..."
         )
 
         # 1. Initialize Normalizer
@@ -111,20 +117,30 @@ class SkyrimHindiPipeline:
         llm_cfg = self.config.get("llm", {})
         kb_cfg = self.config.get("knowledge_base", {})
         kb_path = kb_cfg.get("cache_path", "data/skyrim_lore_kb.json")
+        dump_db = kb_cfg.get("dump_db_path", "data/uesp_knowledge_base.db")
+        dump_file = kb_cfg.get("dump_path", "uespwiki-2026-10-25-current.xml.bz2")
+
+        persona_cfg = self.config.get("persona", {})
 
         self.llm = SkyrimCompanionLLM(
             api_base=llm_cfg.get("api_base", "http://127.0.0.1:1234/v1"),
             api_key=llm_cfg.get("api_key", "none"),
-            model_name=llm_cfg.get("model_name", "qwen2.5:7b"),
+            model_name=llm_cfg.get("model_name", "google/gemma-4-e2b-instruct"),
             temperature=llm_cfg.get("temperature", 0.7),
             top_p=llm_cfg.get("top_p", 0.9),
-            max_tokens=llm_cfg.get("max_tokens", 512),
+            max_tokens=llm_cfg.get("max_tokens", 96),
+            context_window=llm_cfg.get("context_window", 8192),
             system_prompt=llm_cfg.get("system_prompt", None),
             enable_kb=kb_cfg.get("enabled", True),
             kb_cache_path=repo_root / kb_path if not Path(kb_path).is_absolute() else Path(kb_path),
+            dump_db_path=repo_root / dump_db if not Path(dump_db).is_absolute() else Path(dump_db),
+            dump_file_path=repo_root / dump_file if not Path(dump_file).is_absolute() else Path(dump_file),
+            profanity_prob=persona_cfg.get("profanity_chance", 0.33),
+            meltdown_prob=persona_cfg.get("meltdown_chance", 0.02),
+            rng_seed=self.config.get("general", {}).get("seed", 42),
         )
 
-        # 4. Initialize TTS
+        # 4. Initialize TTS & Streaming Audio Coordinator
         tts_cfg = self.config.get("tts", {})
         ref_path = tts_cfg.get("reference_audio_path", "data/reference_speaker.wav")
         self.tts = XTTSHindiSynthesizer(
@@ -141,6 +157,11 @@ class SkyrimHindiPipeline:
             sarvam_model=sarvam_cfg.get("tts", {}).get("model", "bulbul:v4-flash"),
         )
 
+        self.stream_pipeline = StreamingTTSPipeline(
+            tts_synthesizer=self.tts,
+            mock_playback=mock_playback,
+        )
+
         self.audio_output_dir = repo_root / self.config.get("tts", {}).get(
             "audio_output_dir", "eval/results/audio_samples"
         )
@@ -149,29 +170,45 @@ class SkyrimHindiPipeline:
         logger.info("Pipeline ready for execution.")
 
     def _load_config(self) -> Dict[str, Any]:
-        """Loads YAML configuration."""
-        if not self.config_path.exists():
-            logger.warning(f"Config {self.config_path} not found. Using defaults.")
-            return {}
-        with open(self.config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+        """Loads YAML configuration, merging config.local.yaml overrides if present."""
+        base_cfg = {}
+        if self.config_path.exists():
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                base_cfg = yaml.safe_load(f) or {}
+
+        local_cfg_path = repo_root / "config.local.yaml"
+        if local_cfg_path.exists():
+            try:
+                with open(local_cfg_path, "r", encoding="utf-8") as f:
+                    local_cfg = yaml.safe_load(f) or {}
+                for k, v in local_cfg.items():
+                    if isinstance(v, dict) and isinstance(base_cfg.get(k), dict):
+                        base_cfg[k].update(v)
+                    else:
+                        base_cfg[k] = v
+            except Exception as e:
+                logger.warning(f"Error reading config.local.yaml: {e}")
+
+        return base_cfg
 
     def process_turn(
         self,
         user_input_text: Optional[str] = None,
         audio_file_path: Optional[Union[str, Path]] = None,
         raw_audio_array: Optional[Any] = None,
+        event: str = "generic_conversation",
         play_audio: bool = False,
         save_audio: bool = True,
+        streaming: bool = True,
     ) -> Dict[str, Any]:
         """
-        Executes a complete single turn:
-        1. ASR (if audio input provided)
+        Executes a complete single interactive turn:
+        1. ASR (transcription if audio input provided)
         2. Normalization of player query
-        3. LLM generation with persona adherence
-        4. Transliteration / normalization of companion text
-        5. XTTS-v2 synthesis
-        6. Playback and latency telemetry calculation
+        3. LLM generation with Sarkar Bhaiya persona & event directives
+        4. Sentence-level streaming TTS synthesis & sequential playback queue
+        5. Mantella Papyrus hook dispatch
+        6. Latency telemetry calculation
         """
         metrics: Dict[str, Any] = {}
         t_turn_start = time.perf_counter()
@@ -179,6 +216,7 @@ class SkyrimHindiPipeline:
         # Step 1: Input handling & Speech Recognition
         player_text = ""
         stt_latency_ms = 0.0
+        stt_bypassed = False
 
         if raw_audio_array is not None:
             asr_res = self.asr.transcribe_audio_array(raw_audio_array)
@@ -191,86 +229,139 @@ class SkyrimHindiPipeline:
         elif user_input_text is not None:
             player_text = user_input_text.strip()
             stt_latency_ms = 0.0
+            stt_bypassed = True
         else:
             raise ValueError("No input provided. Supply user_input_text, audio_file_path, or raw_audio_array.")
 
         metrics["player_input"] = player_text
         metrics["stt_latency_ms"] = round(stt_latency_ms, 2)
+        metrics["stt_bypassed"] = stt_bypassed
+        metrics["event"] = event
 
         # Step 2: Query Normalization
         t_norm_start = time.perf_counter()
         normalized_query = self.normalizer.normalize(player_text)
-        t_norm_end = time.perf_counter()
-        norm_query_ms = (t_norm_end - t_norm_start) * 1000.0
+        norm_query_ms = (time.perf_counter() - t_norm_start) * 1000.0
 
-        # Step 3: LLM Companion Persona Response
-        t_llm_start = time.perf_counter()
-        llm_res = self.llm.generate(normalized_query)
-        raw_companion_reply = llm_res["text"]
-        llm_ttft_ms = llm_res["ttft_ms"]
-        llm_total_ms = llm_res["total_ms"]
-        llm_tokens = llm_res["tokens"]
-        llm_tps = llm_res["tokens_per_sec"]
-
-        metrics["raw_companion_reply"] = raw_companion_reply
-        metrics["llm_ttft_ms"] = round(llm_ttft_ms, 2)
-        metrics["llm_total_ms"] = round(llm_total_ms, 2)
-        metrics["llm_tokens"] = llm_tokens
-        metrics["llm_tps"] = round(llm_tps, 2)
-
-        # Step 4: Companion Response Normalization for TTS
-        t_norm_reply_start = time.perf_counter()
-        clean_tts_text = self.normalizer.normalize(raw_companion_reply)
-        norm_reply_ms = (time.perf_counter() - t_norm_reply_start) * 1000.0
-        metrics["normalized_tts_text"] = clean_tts_text
-        metrics["norm_latency_ms"] = round(norm_query_ms + norm_reply_ms, 2)
-
-        # Step 5: TTS Speech Synthesis
         timestamp_str = int(time.time() * 1000)
         out_wav_path = self.audio_output_dir / f"turn_{timestamp_str}.wav" if save_audio else None
 
-        tts_res = self.tts.synthesize(clean_tts_text, output_path=out_wav_path)
-        metrics["tts_ttfa_ms"] = tts_res["ttfa_ms"]
-        metrics["tts_total_ms"] = tts_res["latency_ms"]
-        metrics["tts_audio_duration_sec"] = tts_res["duration_sec"]
-        metrics["tts_rtf"] = tts_res["rtf"]
-        metrics["audio_path"] = str(out_wav_path) if out_wav_path else None
+        if streaming:
+            # Step 3 & 4: Streaming LLM into Thread-Safe Audio Playback Queue
+            token_stream = self.llm.stream_generate(normalized_query, event=event)
+            stream_res = self.stream_pipeline.run_streaming_turn(
+                token_stream=token_stream,
+                play_audio=play_audio,
+                output_wav_path=out_wav_path,
+                turn_start_time=t_turn_start,
+            )
 
-        # Step 6: Audio Playback (optional)
-        if play_audio:
-            self.tts.play_audio(tts_res["audio"], sample_rate=tts_res["sample_rate"])
+            raw_reply = stream_res["full_text"]
+            llm_m = stream_res["llm_metrics"]
 
-        # End-to-End Latency Calculation
-        t_turn_end = time.perf_counter()
-        e2e_latency_ms = (t_turn_end - t_turn_start) * 1000.0
-        metrics["e2e_latency_ms"] = round(e2e_latency_ms, 2)
+            # Companion normalization
+            t_norm_reply_start = time.perf_counter()
+            clean_tts_text = self.normalizer.normalize(raw_reply)
+            norm_reply_ms = (time.perf_counter() - t_norm_reply_start) * 1000.0
 
-        # Mantella event hook dispatch
+            metrics["raw_companion_reply"] = raw_reply
+            metrics["normalized_tts_text"] = clean_tts_text
+            metrics["norm_latency_ms"] = round(norm_query_ms + norm_reply_ms, 2)
+            metrics["llm_ttft_ms"] = llm_m.get("ttft_ms", 0.0)
+            metrics["llm_total_ms"] = llm_m.get("total_ms", 0.0)
+            metrics["llm_tokens"] = llm_m.get("tokens", len(clean_tts_text.split()))
+            metrics["llm_tps"] = llm_m.get("tokens_per_sec", 0.0)
+            metrics["is_llm_fallback"] = llm_m.get("is_fallback", False)
+            metrics["profanity_word"] = llm_m.get("profanity_word", None)
+            metrics["profanity_severity"] = llm_m.get("profanity_severity", "none")
+
+            metrics["tts_ttfa_ms"] = stream_res["ttfa_ms"]
+            metrics["first_audible_ms"] = stream_res["first_audible_ms"]
+            metrics["tts_total_ms"] = stream_res["tts_total_synth_ms"]
+            metrics["tts_audio_duration_sec"] = stream_res["audio_duration_sec"]
+            metrics["tts_rtf"] = (
+                round(stream_res["tts_total_synth_ms"] / (stream_res["audio_duration_sec"] * 1000.0), 3)
+                if stream_res["audio_duration_sec"] > 0
+                else 0.0
+            )
+            metrics["is_tts_fallback"] = self.tts.tts is None and self.provider != "sarvam"
+            metrics["audio_path"] = str(out_wav_path) if out_wav_path else None
+            metrics["e2e_latency_ms"] = stream_res["e2e_latency_ms"]
+
+        else:
+            # Non-streaming execution path
+            llm_res = self.llm.generate(normalized_query, event=event)
+            raw_reply = llm_res["text"]
+
+            t_norm_reply_start = time.perf_counter()
+            clean_tts_text = self.normalizer.normalize(raw_reply)
+            norm_reply_ms = (time.perf_counter() - t_norm_reply_start) * 1000.0
+
+            tts_res = self.tts.synthesize(clean_tts_text, output_path=out_wav_path)
+            if play_audio:
+                self.tts.play_audio(tts_res["audio"], sample_rate=tts_res["sample_rate"])
+
+            t_end = time.perf_counter()
+            e2e_latency_ms = (t_end - t_turn_start) * 1000.0
+
+            metrics["raw_companion_reply"] = raw_reply
+            metrics["normalized_tts_text"] = clean_tts_text
+            metrics["norm_latency_ms"] = round(norm_query_ms + norm_reply_ms, 2)
+            metrics["llm_ttft_ms"] = llm_res["ttft_ms"]
+            metrics["llm_total_ms"] = llm_res["total_ms"]
+            metrics["llm_tokens"] = llm_res["tokens"]
+            metrics["llm_tps"] = llm_res["tokens_per_sec"]
+            metrics["is_llm_fallback"] = llm_res["is_fallback"]
+            metrics["profanity_word"] = llm_res.get("profanity_word", None)
+            metrics["profanity_severity"] = llm_res.get("profanity_severity", "none")
+
+            metrics["tts_ttfa_ms"] = tts_res["ttfa_ms"]
+            metrics["first_audible_ms"] = tts_res["ttfa_ms"]
+            metrics["tts_total_ms"] = tts_res["latency_ms"]
+            metrics["tts_audio_duration_sec"] = tts_res["duration_sec"]
+            metrics["tts_rtf"] = tts_res["rtf"]
+            metrics["is_tts_fallback"] = tts_res["is_fallback"]
+            metrics["audio_path"] = str(out_wav_path) if out_wav_path else None
+            metrics["e2e_latency_ms"] = round(e2e_latency_ms, 2)
+
+        # Dispatch Mantella integration hook
         self.dispatch_mantella_hook(
             player_text=player_text,
             companion_text=clean_tts_text,
             audio_path=str(out_wav_path) if out_wav_path else "",
+            event=event,
         )
 
         return metrics
 
-    def dispatch_mantella_hook(self, player_text: str, companion_text: str, audio_path: str) -> None:
+    def dispatch_mantella_hook(
+        self, player_text: str, companion_text: str, audio_path: str, event: str = "generic_conversation"
+    ) -> None:
         """
         Extensible hook for Tier 3 Skyrim Mantella integration.
         Mantella reads companion audio files from disk and triggers Skyrim Papyrus NPC LipSync events.
         """
         logger.debug(
-            f"[Mantella Hook] Player: '{player_text}' -> Companion: '{companion_text}' (Audio: {audio_path})"
+            f"[Mantella Hook] Event: '{event}' | Player: '{player_text}' -> Sarkar: '{companion_text}' (Audio: {audio_path})"
         )
 
     def print_turn_summary(self, metrics: Dict[str, Any]) -> None:
         """Renders rich terminal tables with telemetry."""
+        evt = metrics.get("event", "generic_conversation")
+        prof = metrics.get("profanity_word")
+        prof_info = f" | Insult: '{prof}' ({metrics.get('profanity_severity')})" if prof else ""
+
         if RICH_AVAILABLE and console:
             console.print("\n")
-            console.print(Panel(f"[bold cyan]{metrics['player_input']}[/bold cyan]", title="👤 Player Input"))
-            console.print(Panel(f"[bold green]{metrics['normalized_tts_text']}[/bold green]", title="⚔️ Veer (Companion)"))
+            console.print(Panel(f"[bold cyan]{metrics['player_input']}[/bold cyan]", title=f"👤 Player Input (Event: {evt})"))
+            console.print(
+                Panel(
+                    f"[bold yellow]{metrics['normalized_tts_text']}[/bold yellow]",
+                    title=f"👑 सरकार भैया — Sarkar Bhaiya{prof_info}",
+                )
+            )
 
-            table = Table(title="⚡ Latency Telemetry Breakdown", show_header=True, header_style="bold magenta")
+            table = Table(title="⚡ Latency Telemetry Breakdown (Sarkar Bhaiya Voice Pipeline)", show_header=True, header_style="bold magenta")
             table.add_column("Pipeline Stage", style="dim")
             table.add_column("Metric", justify="right")
             table.add_column("Target (SLA)", justify="right")
@@ -279,34 +370,39 @@ class SkyrimHindiPipeline:
             def sla_badge(val, threshold):
                 return "[bold green]PASS[/bold green]" if val <= threshold else "[bold yellow]WARN[/bold yellow]"
 
-            table.add_row("ASR (Faster-Whisper)", f"{metrics['stt_latency_ms']} ms", "≤ 800 ms", sla_badge(metrics['stt_latency_ms'], 800))
+            stt_str = f"{metrics['stt_latency_ms']} ms" if not metrics.get("stt_bypassed") else "Bypassed (Text)"
+            table.add_row("ASR (Faster-Whisper)", stt_str, "≤ 800 ms", sla_badge(metrics['stt_latency_ms'], 800))
             table.add_row("Normalization", f"{metrics['norm_latency_ms']} ms", "≤ 50 ms", sla_badge(metrics['norm_latency_ms'], 50))
-            table.add_row("LLM TTFT", f"{metrics['llm_ttft_ms']} ms", "≤ 600 ms", sla_badge(metrics['llm_ttft_ms'], 600))
+            table.add_row("LLM TTFT (Gemma 4)", f"{metrics['llm_ttft_ms']} ms", "≤ 600 ms", sla_badge(metrics['llm_ttft_ms'], 600))
             table.add_row("LLM Total", f"{metrics['llm_total_ms']} ms ({metrics['llm_tps']} tps)", "≤ 1500 ms", sla_badge(metrics['llm_total_ms'], 1500))
-            table.add_row("TTS TTFA", f"{metrics['tts_ttfa_ms']} ms", "≤ 900 ms", sla_badge(metrics['tts_ttfa_ms'], 900))
+            table.add_row("TTS TTFA (First Chunk)", f"{metrics['tts_ttfa_ms']} ms", "≤ 900 ms", sla_badge(metrics['tts_ttfa_ms'], 900))
+            table.add_row("First Audible Playback", f"{metrics.get('first_audible_ms', metrics['tts_ttfa_ms'])} ms", "≤ 1200 ms", sla_badge(metrics.get('first_audible_ms', 0), 1200))
             table.add_row("TTS Total", f"{metrics['tts_total_ms']} ms (RTF: {metrics['tts_rtf']})", "≤ 1500 ms", sla_badge(metrics['tts_total_ms'], 1500))
             table.add_row("[bold]Total End-to-End[/bold]", f"[bold]{metrics['e2e_latency_ms']} ms[/bold]", "≤ 2800 ms", sla_badge(metrics['e2e_latency_ms'], 2800))
 
             console.print(table)
         else:
             print("\n" + "=" * 60)
-            print(f"👤 Player:    {metrics['player_input']}")
-            print(f"⚔️ Companion: {metrics['normalized_tts_text']}")
+            print(f"👤 Player ({evt}): {metrics['player_input']}")
+            print(f"👑 सरकार भैया:    {metrics['normalized_tts_text']}{prof_info}")
             print("-" * 60)
-            print(f"STT Latency:   {metrics['stt_latency_ms']} ms")
-            print(f"Norm Latency:  {metrics['norm_latency_ms']} ms")
-            print(f"LLM TTFT:      {metrics['llm_ttft_ms']} ms ({metrics['llm_tps']} tps)")
-            print(f"TTS TTFA:      {metrics['tts_ttfa_ms']} ms (RTF: {metrics['tts_rtf']})")
-            print(f"End-to-End:    {metrics['e2e_latency_ms']} ms")
+            print(f"STT Latency:    {metrics['stt_latency_ms']} ms {'(Bypassed)' if metrics.get('stt_bypassed') else ''}")
+            print(f"Norm Latency:   {metrics['norm_latency_ms']} ms")
+            print(f"LLM TTFT:       {metrics['llm_ttft_ms']} ms ({metrics['llm_tps']} tps)")
+            print(f"TTS TTFA:       {metrics['tts_ttfa_ms']} ms")
+            print(f"First Audible:  {metrics.get('first_audible_ms', 0.0)} ms")
+            print(f"Total E2E:      {metrics['e2e_latency_ms']} ms")
             print("=" * 60)
 
 
 def interactive_cli() -> None:
-    """Launches the interactive Push-to-Talk and Text console."""
-    parser = argparse.ArgumentParser(description="Skyrim Hindi AI Companion Voice Pipeline")
+    """Launches the interactive Push-to-Talk and Text console with event simulation."""
+    parser = argparse.ArgumentParser(description="Skyrim Hindi AI Companion Voice Pipeline — Sarkar Bhaiya")
     parser.add_argument("--mode", choices=["text", "mic", "file"], default="text", help="Interaction mode")
     parser.add_argument("--audio", type=str, default=None, help="Input audio file for file mode")
+    parser.add_argument("--event", type=str, default="generic_conversation", choices=list(GAMEPLAY_EVENTS.keys()), help="Skyrim gameplay event")
     parser.add_argument("--play", action="store_true", help="Play synthesized audio through speakers")
+    parser.add_argument("--no-stream", action="store_true", help="Disable sentence-level streaming")
     parser.add_argument("--sarvam", action="store_true", help="Use Sarvam AI Indic models (Bulbul TTS & Saaras STT)")
     parser.add_argument("--speaker", type=str, default="arvind", help="Sarvam TTS speaker (arvind, meera, ishita_enhi_companion)")
     args = parser.parse_args()
@@ -316,18 +412,27 @@ def interactive_cli() -> None:
         sarvam_speaker=args.speaker,
     )
 
+    current_event = args.event
+
     if args.mode == "file":
         if not args.audio:
             print("Error: --audio <path> is required in file mode.")
             sys.exit(1)
-        res = pipeline.process_turn(audio_file_path=args.audio, play_audio=args.play)
+        res = pipeline.process_turn(
+            audio_file_path=args.audio,
+            event=current_event,
+            play_audio=args.play,
+            streaming=not args.no_stream,
+        )
         pipeline.print_turn_summary(res)
         return
 
-    print("\n⚔️ ======================================================= ⚔️")
-    print("   Skyrim Hindi AI Companion — 'Veer' (Tier 1 Baseline)    ")
-    print("⚔️ ======================================================= ⚔️")
-    print(f"Mode: {args.mode.upper()} | Type 'exit' or 'quit' to end.\n")
+    print("\n👑 =============================================================== 👑")
+    print("   Skyrim Hindi AI Companion — 'सरकार भैया' (Sarkar Bhaiya)        ")
+    print("👑 =============================================================== 👑")
+    print(f"Active Event: '{current_event}' | Mode: {args.mode.upper()}")
+    print("Tip: Change event mid-game by typing ':event <event_name>' (e.g. :event missed_attack)")
+    print("Type 'exit' or 'quit' to end.\n")
 
     while True:
         try:
@@ -335,15 +440,35 @@ def interactive_cli() -> None:
                 audio_arr = FasterWhisperASR.record_microphone_push_to_talk()
                 if len(audio_arr) == 0:
                     continue
-                res = pipeline.process_turn(raw_audio_array=audio_arr, play_audio=args.play)
+                res = pipeline.process_turn(
+                    raw_audio_array=audio_arr,
+                    event=current_event,
+                    play_audio=args.play,
+                    streaming=not args.no_stream,
+                )
             else:
-                user_msg = input("\n[Player] Type prompt (Hindi or Hinglish): ")
-                if user_msg.strip().lower() in ("exit", "quit", "q"):
-                    print("Leaving Skyrim. Safe travels, Dovahkiin!")
+                user_msg = input(f"\n[Player | {current_event}] Type prompt: ")
+                msg_str = user_msg.strip()
+                if msg_str.lower() in ("exit", "quit", "q"):
+                    print("इतिहास गवाह है, सरकार भैया को कभी भुलाया नहीं जा सकेगा। अलविदा!")
                     break
-                if not user_msg.strip():
+                if not msg_str:
                     continue
-                res = pipeline.process_turn(user_input_text=user_msg, play_audio=args.play)
+                if msg_str.startswith(":event "):
+                    new_evt = msg_str.split(" ", 1)[1].strip()
+                    if new_evt in GAMEPLAY_EVENTS:
+                        current_event = new_evt
+                        print(f"⚡ Active event changed to: '{current_event}'")
+                    else:
+                        print(f"Unknown event. Valid events: {list(GAMEPLAY_EVENTS.keys())}")
+                    continue
+
+                res = pipeline.process_turn(
+                    user_input_text=msg_str,
+                    event=current_event,
+                    play_audio=args.play,
+                    streaming=not args.no_stream,
+                )
 
             pipeline.print_turn_summary(res)
 
@@ -355,4 +480,3 @@ def interactive_cli() -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     interactive_cli()
-

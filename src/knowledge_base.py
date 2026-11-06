@@ -21,6 +21,8 @@ repo_root = Path(__file__).resolve().parent.parent
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
 
+from src.uesp_indexer import UESPWikiDumpIndexer
+
 logger = logging.getLogger(__name__)
 
 UESP_BASE_URL = "https://en.uesp.net/wiki/"
@@ -34,6 +36,8 @@ class UESPKnowledgeBase:
     def __init__(
         self,
         cache_path: Optional[Union[str, Path]] = None,
+        dump_db_path: Optional[Union[str, Path]] = None,
+        dump_file_path: Optional[Union[str, Path]] = None,
         enable_online_fetch: bool = True,
         timeout_sec: float = 3.5,
     ):
@@ -42,11 +46,22 @@ class UESPKnowledgeBase:
             if cache_path
             else repo_root / "data" / "skyrim_lore_kb.json"
         )
+        self.db_path = (
+            Path(dump_db_path)
+            if dump_db_path
+            else repo_root / "data" / "uesp_knowledge_base.db"
+        )
+        self.dump_path = (
+            Path(dump_file_path)
+            if dump_file_path
+            else repo_root / "uespwiki-2026-10-25-current.xml.bz2"
+        )
         self.enable_online_fetch = enable_online_fetch
         self.timeout_sec = timeout_sec
 
         self.lore_data: Dict[str, Any] = {}
         self.entities: Dict[str, Dict[str, Any]] = {}
+        self.indexer = UESPWikiDumpIndexer(dump_path=self.dump_path, db_path=self.db_path)
         self._load_cache()
 
     def _load_cache(self) -> None:
@@ -101,13 +116,27 @@ class UESPKnowledgeBase:
             if query_lower in hindi_name or query_lower in title or hindi_name in query_lower:
                 return entry
 
-        # 3. Substring keyword search across key lore terms
+        # 3. Substring keyword search across key lore terms in curated cache
         for key, entry in self.entities.items():
             key_words = key.lower().split()
             if any(w in query_lower for w in key_words if len(w) > 3):
                 return entry
 
-        # 4. If not found in cache and online fetching is enabled, try UESP API
+        # 4. Search the canonical UESP XML Dump SQLite FTS5 database
+        dump_matches = self.indexer.search(query_clean, limit=1)
+        if dump_matches:
+            top = dump_matches[0]
+            return {
+                "title": top["title"],
+                "clean_title": top["clean_title"],
+                "uesp_url": top["url"],
+                "hindi_name": top["clean_title"],
+                "category": f"uesp_dump_{top['namespace'].lower()}",
+                "summary": top["summary"],
+                "lore_context_hi": f"स्काईरिम इतिहास ({top['clean_title']}): {top['summary'][:250]}",
+            }
+
+        # 5. If not found in cache or dump and online fetching is enabled, try UESP API
         if self.enable_online_fetch:
             return self.fetch_from_uesp_api(query_clean)
 
@@ -189,6 +218,16 @@ class UESPKnowledgeBase:
 
             if matches:
                 matched_entries.append(entry)
+
+        # If fewer than 2 matches from curated cache, query the UESP XML dump database
+        if len(matched_entries) < 2 and self.indexer.db_path.exists():
+            dump_matches = self.indexer.search(user_prompt, limit=2)
+            for m in dump_matches:
+                if m["title"] not in [x.get("title") for x in matched_entries]:
+                    matched_entries.append({
+                        "summary": m["summary"],
+                        "lore_context_hi": f"स्काईरिम इतिहास ({m['clean_title']}): {m['summary'][:220]}",
+                    })
 
         if not matched_entries:
             return ""
